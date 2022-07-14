@@ -53,53 +53,25 @@ func checkJobs(tipCautat string) {
 	checkError(err)
 	defer rows.Close()
 
-	// Daca nu avem nici-o declaratie in progres:
+	// Daca nu avem nici-o declaratie in progres
 	if !rows.Next() {
 		fmt.Println("Nu avem declaratii in progres")
 
-		// Declaratii in asteptare.
-		sql_statement := fmt.Sprintf("SELECT count(id)  from declaration_queue  where status = 'queued' and type = '%s';", tipCautat)
+		// Selectam prima declaratie din coada
+		sql_statement := fmt.Sprintf("SELECT * from declaration_queue  where status = 'queued' and type = '%s' limit 1;", tipCautat)
 		rows, err := db.Query(sql_statement)
 		checkError(err)
 		defer rows.Close()
 
-		var queuedJobs int
-		rows.Next()
-
-		switch err := rows.Scan(&queuedJobs); err {
-		case sql.ErrNoRows:
-			fmt.Println("No rows were returned")
-		case nil:
-			fmt.Println("Numar declaratii in queuedJobs:", queuedJobs)
-		default:
-			checkError(err)
-		}
-
-		if queuedJobs != 0 {
-			// Prima declaratie in asteptare va fi analizata
-			sql_statement := fmt.Sprintf("SELECT * from declaration_queue  where status = 'queued' and type = '%s' limit 1;", tipCautat)
-			rows, err := db.Query(sql_statement)
-			checkError(err)
-			defer rows.Close()
-
-			var declaratie StartingJob
+		// Daca avem cel putin o declaratie in coada
+		if rows.Next() {
 			// Prima declaratie din coada
-			fmt.Println("Prima declaratie: ")
-			rows.Next()
-			switch err := rows.Scan(&declaratie.id, &declaratie.declaration_id, &declaratie.date, &declaratie.status, &declaratie.tip, &declaratie.job_id, &declaratie.reporting_declaration_id, &declaratie.account_id); err {
-			case sql.ErrNoRows:
-				fmt.Println("No rows were returned")
-			case nil:
-				fmt.Println("Data row = (", declaratie.id, ", ", declaratie.status, ")")
-			default:
-				checkError(err)
-			}
+			var declaratie StartingJob
+			err = rows.Scan(&declaratie.id, &declaratie.declaration_id, &declaratie.date, &declaratie.status, &declaratie.tip, &declaratie.job_id, &declaratie.reporting_declaration_id, &declaratie.account_id)
+			checkError(err)
+			fmt.Println("Data row = (", declaratie.id, ", ", declaratie.status, ")")
 
-			rows, err = db.Query("count(1);")
-
-			fmt.Println(*declaratie.reporting_declaration_id)
-
-			var url_pad sql.NullString
+			/*var url_pad sql.NullString
 			//var lrn sql.NullString
 
 			if tipCautat == "report" {
@@ -118,7 +90,10 @@ func checkJobs(tipCautat string) {
 				}
 				fmt.Println("Pad_url:", url_pad.String)
 
-			}
+			}*/
+
+		} else {
+			fmt.Println("Nu avem declaratii in coada")
 		}
 	} else {
 		fmt.Println("Exista deja o declaratie in progres")
