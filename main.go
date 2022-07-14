@@ -81,6 +81,7 @@ func checkJobs(tipCautat string) {
 			checkError(err)
 			defer rows.Close()
 
+			// startingJob
 			var (
 				id                       sql.NullString
 				declaration_id           sql.NullString
@@ -94,15 +95,31 @@ func checkJobs(tipCautat string) {
 
 			// Prima declaratie din coada
 			fmt.Println("Prima declaratie: ")
-			for rows.Next() {
-				switch err := rows.Scan(&id, &declaration_id, &date, &status, &tip, &job_id, &reporting_declaration_id, &account_id); err {
-				case sql.ErrNoRows:
-					fmt.Println("No rows were returned")
-				case nil:
-					fmt.Println("Data row = (", id.String, ", ", status.String, ")")
-				default:
-					checkError(err)
-				}
+			rows.Next()
+			switch err := rows.Scan(&id, &declaration_id, &date, &status, &tip, &job_id, &reporting_declaration_id, &account_id); err {
+			case sql.ErrNoRows:
+				fmt.Println("No rows were returned")
+			case nil:
+				fmt.Println("Data row = (", id.String, ", ", status.String, ")")
+			default:
+				checkError(err)
+			}
+
+			var url_pad sql.NullString
+			//lrn := ""
+
+			if tipCautat == "report" {
+				sql_statement := fmt.Sprintf("select pad_url from users where id = (SELECT users_id _id from reporting_declaration where id = %s );", reporting_declaration_id.String)
+				rows, err := db.Query(sql_statement)
+				checkError(err)
+				defer rows.Close()
+
+				rows.Next()
+				err = rows.Scan(&url_pad)
+				checkError(err)
+
+				fmt.Println("Pad_url:", url_pad.String)
+
 			}
 		}
 	}
