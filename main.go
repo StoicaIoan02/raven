@@ -69,35 +69,34 @@ func checkJobs(tipCautat string) {
 			var declaratie StartingJob
 			err = rows.Scan(&declaratie.id, &declaratie.declaration_id, &declaratie.date, &declaratie.status, &declaratie.tip, &declaratie.job_id, &declaratie.reporting_declaration_id, &declaratie.account_id)
 			checkError(err)
-			fmt.Println("Data row = (", declaratie.id, ", ", declaratie.status, ")")
+			fmt.Printf("Declaratie in asteptare gasita: (%d, %s, %s)\n", declaratie.id, declaratie.status, declaratie.tip)
 
-			/*var url_pad sql.NullString
-			//var lrn sql.NullString
+			var url_pad string
+			// var lrn sql.NullString
 
 			if tipCautat == "report" {
-				///Setare pad_url
+				///Selectare pad_url
 				sql_statement := fmt.Sprintf("select pad_url from users where id = (SELECT users_id _id from reporting_declaration where id = %d );", *declaratie.reporting_declaration_id)
 				rows, err := db.Query(sql_statement)
 				checkError(err)
 				defer rows.Close()
 
+				// Convertire pad_url rows -> string
 				rows.Next()
 				err = rows.Scan(&url_pad)
 				checkError(err)
+				fmt.Println("Pad_url gasit:", url_pad)
 
-				if url_pad.Valid == false {
-					fmt.Println("error: url_pad.Valid == false ")
-				}
-				fmt.Println("Pad_url:", url_pad.String)
-
-			}*/
+			}
 
 		} else {
 			fmt.Println("Nu avem declaratii in coada")
 		}
+
 	} else {
 		fmt.Println("Exista deja o declaratie in progres")
 	}
+
 }
 
 func main() {
