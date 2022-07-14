@@ -21,7 +21,7 @@ func checkError(err error) {
 	}
 }
 
-func checkJobs() {
+func checkJobs(tipCautat string) {
 
 	// Initialize connection string.
 	var connectionString string = fmt.Sprintf("host=%s user=%s password=%s dbname=%s sslmode=require", HOST, USER, PASSWORD, DATABASE)
@@ -44,7 +44,7 @@ func checkJobs() {
 	checkError(err)
 	fmt.Println("Successfully created connection to database")
 
-	sql_statement := "SELECT * from declaration_queue;"
+	sql_statement := fmt.Sprintf("SELECT * from declaration_queue  where status = 'on progress' and type = '%s';", tipCautat)
 	rows, err := db.Query(sql_statement)
 	checkError(err)
 	defer rows.Close()
@@ -62,6 +62,6 @@ func checkJobs() {
 }
 
 func main() {
-	checkJobs()
+	checkJobs("report")
 	println("final functie")
 }
