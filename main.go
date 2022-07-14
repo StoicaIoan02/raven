@@ -30,38 +30,85 @@ func checkJobs(tipCautat string) {
 	db, err := sql.Open("postgres", connectionString)
 	checkError(err)
 
-	// Read rows from table; tipul variabilelor este sql.NullString deoarece putem gasii NULL in orice camp
-	var id sql.NullString
-	var declaration_id sql.NullString
-	var date sql.NullString
-	var status sql.NullString
-	var tip sql.NullString
-	var job_id sql.NullString
-	var reporting_declaration_id sql.NullString
-	var account_id sql.NullString
-
+	// Ping
 	err = db.Ping()
 	checkError(err)
 	fmt.Println("Successfully created connection to database")
 
-	sql_statement := fmt.Sprintf("SELECT * from declaration_queue  where status = 'on progress' and type = '%s';", tipCautat)
+	// Numarare declaratii in progres.
+	sql_statement := fmt.Sprintf("SELECT count(id)  from declaration_queue  where status = 'on progress' and type = '%s';", tipCautat)
 	rows, err := db.Query(sql_statement)
 	checkError(err)
 	defer rows.Close()
 
-	for rows.Next() {
-		switch err := rows.Scan(&id, &declaration_id, &date, &status, &tip, &job_id, &reporting_declaration_id, &account_id); err {
+	var runningJobs int
+	rows.Next()
+
+	switch err := rows.Scan(&runningJobs); err {
+	case sql.ErrNoRows:
+		fmt.Println("No rows were returned")
+	case nil:
+		fmt.Println("Numar declaratii in runningJobs:", runningJobs)
+	default:
+		checkError(err)
+	}
+
+	if runningJobs == 0 {
+		fmt.Println("Nu avem declaratii in progres.")
+
+		// Declaratii in asteptare.
+		sql_statement := fmt.Sprintf("SELECT count(id)  from declaration_queue  where status = 'queued' and type = '%s';", tipCautat)
+		rows, err := db.Query(sql_statement)
+		checkError(err)
+		defer rows.Close()
+
+		var queuedJobs int
+		rows.Next()
+
+		switch err := rows.Scan(&queuedJobs); err {
 		case sql.ErrNoRows:
 			fmt.Println("No rows were returned")
 		case nil:
-			fmt.Println("Data row = (", id, ", ", status, ")\n")
+			fmt.Println("Numar declaratii in queuedJobs:", queuedJobs)
 		default:
 			checkError(err)
+		}
+
+		if queuedJobs != 0 {
+			// Prima declaratie in asteptare va fi analizata
+			sql_statement := fmt.Sprintf("SELECT * from declaration_queue  where status = 'queued' and type = '%s' limit 1;", tipCautat)
+			rows, err := db.Query(sql_statement)
+			checkError(err)
+			defer rows.Close()
+
+			var (
+				id                       sql.NullString
+				declaration_id           sql.NullString
+				date                     sql.NullString
+				status                   sql.NullString
+				tip                      sql.NullString
+				job_id                   sql.NullString
+				reporting_declaration_id sql.NullString
+				account_id               sql.NullString
+			)
+
+			// Prima declaratie din coada
+			fmt.Println("Prima declaratie: ")
+			for rows.Next() {
+				switch err := rows.Scan(&id, &declaration_id, &date, &status, &tip, &job_id, &reporting_declaration_id, &account_id); err {
+				case sql.ErrNoRows:
+					fmt.Println("No rows were returned")
+				case nil:
+					fmt.Println("Data row = (", id.String, ", ", status.String, ")")
+				default:
+					checkError(err)
+				}
+			}
 		}
 	}
 }
 
 func main() {
 	checkJobs("report")
-	println("final functie")
+	println("Program rulat cu succes")
 }
